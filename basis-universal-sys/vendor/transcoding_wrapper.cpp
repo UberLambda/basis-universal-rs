@@ -200,6 +200,7 @@ extern "C" {
         virtual bool validate_file_checksums(bool full_validation) const = 0;
 
         virtual basist::basis_texture_type get_texture_type() const = 0;
+        virtual bool get_userdata(uint32_t &data0, uint32_t &data1) const = 0;
     };
 
     // Wraps a .basis format transcoder.
@@ -227,16 +228,20 @@ extern "C" {
             return TranscoderType::Basis;
         }
 
-        basist::basis_texture_type get_texture_type() const override {
-            return pTranscoder->get_texture_type(data.pData, data.size);
-        }
-
         bool validate_header() const override {
             return pTranscoder->validate_header(data.pData, data.size);
         }
 
         bool validate_file_checksums(bool full_validation) const override {
             return pTranscoder->validate_file_checksums(data.pData, data.size, full_validation);
+        }
+
+        basist::basis_texture_type get_texture_type() const override {
+            return pTranscoder->get_texture_type(data.pData, data.size);
+        }
+
+        bool get_userdata(uint32_t &data0, uint32_t &data1) const override {
+            return pTranscoder->get_userdata(data.pData, data.size, data0, data1);
         }
     };
 
@@ -281,6 +286,12 @@ extern "C" {
             // (2D, 2D Array, Cubemap [array] or Volume)
             return {};
         }
+
+        bool get_userdata(uint32_t &data0, uint32_t &data1) const override {
+            // FIXME(Paolo): IMPLEMENT!
+            /// These two can most definitely go in the <key,value> section of KTX2
+            return {};
+        }
     };
 
     Transcoder *transcoder_new(TranscoderType type, MemoryView data) {
@@ -316,8 +327,7 @@ extern "C" {
     }
 
     bool transcoder_get_userdata(const Transcoder *transcoder, uint32_t &userdata0, uint32_t &userdata1) {
-        // FIXME(Paolo) IMPLEMENT!
-        return false;
+        return transcoder->get_userdata(userdata0, userdata1);
     }
 
     // Returns the total number of images in the basis file (always 1 or more).
