@@ -159,25 +159,81 @@ extern "C" {
 
     // Not implemented
 
-
-    //
-    // basisu_transcoder
-    //
-    struct Transcoder {
-        basist::etc1_global_selector_codebook *pCodebook;
-        basist::basisu_transcoder *pTranscoder;
+    // The type of transcoder to create
+    enum class TranscoderType {
+        Basis,
+        Ktx2,
     };
 
-    Transcoder *transcoder_new() {
-        Transcoder *transcoder = new Transcoder;
-        transcoder->pCodebook = new basist::etc1_global_selector_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb);
-        transcoder->pTranscoder = new basist::basisu_transcoder(transcoder->pCodebook);
-        return transcoder;
+    // The base of a Basis transcoder wrapper.
+    struct Transcoder {
+        basist::etc1_global_selector_codebook *pCodebook;
+
+        Transcoder()
+            : pCodebook{new basist::etc1_global_selector_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb)}
+        {
+        }
+
+        virtual ~Transcoder() {
+            delete pTranscoder; pTranscoder = nullptr;
+        }
+
+        virtual TranscoderType type() const = 0;
+    };
+
+    // Wraps a .basis format transcoder.
+    struct BasisTranscoder final : public Transcoder {
+        basist::basisu_transcoder *pTranscoder;
+
+        BasisTranscoder()
+            : Transcoder()
+            , pTranscoder{new basist::basisu_transcoder(pCodebook)}
+        {
+        }
+
+        ~BasisTranscoder() override {
+            delete pTranscoder; pTranscoder = nullptr;
+        }
+
+        TranscoderType type() override {
+            return TranscoderType::Basis;
+        }
+    };
+
+    // Wraps a KTX2 format transcoder.
+    struct Ktx2Transcoder final : public Transcoder {
+        basist::ktx2_transcoder *pTranscoder;
+
+        Ktx2Transcoder()
+            : Transcoder()
+            , pTranscoder{new basist::ktx2_transcoder(transcoder->pCodebook)}
+        {
+
+        }
+
+        ~Ktx2Transcoder() override { 
+            delete pTranscoder; pTranscoder = nullptr;
+        }
+
+        TranscoderType type() override {
+            return TranscoderType::Ktx2;
+        }
+    };
+
+    Transcoder *transcoder_new(TranscoderType type) {
+        switch(type) {
+            case TranscoderType::Basis:
+                return new BasisTranscoder();
+
+            case TranscoderType::Ktx2:
+                return new Ktx2Transcoder();
+            
+            default:
+                return nullptr;
+        }
     };
 
     void transcoder_delete(Transcoder *transcoder) {
-        delete transcoder->pTranscoder;
-        delete transcoder->pCodebook;
         delete transcoder;
     }
 
