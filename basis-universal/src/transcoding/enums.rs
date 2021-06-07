@@ -1,6 +1,9 @@
 use basis_universal_sys as sys;
 use std::ffi::CStr;
 
+/// The type of transcoder source
+pub use sys::TranscoderType;
+
 /// The type of data stored
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u32)]
