@@ -203,6 +203,7 @@ extern "C" {
         virtual basist::basis_texture_type get_texture_type() const = 0;
         virtual bool get_userdata(uint32_t &data0, uint32_t &data1) const = 0;
         virtual uint32_t get_total_images() const = 0;
+        virtual uint32_t get_total_image_levels(uint32_t image_index) const = 0;
     };
 
     // Wraps a .basis format transcoder.
@@ -248,6 +249,10 @@ extern "C" {
 
         uint32_t get_total_images() const override {
             return pTranscoder->get_total_images(data.pData, data.size);
+        }
+
+        uint32_t get_total_image_levels(uint32_t image_index) const override {
+            return pTranscoder->get_total_image_levels(data.pData, data.size);
         }
     };
 
@@ -305,6 +310,12 @@ extern "C" {
             // Hence, the total number of "images" is as follows:
             return pTranscoder->get_faces() * std::max(pTranscoder->get_layers(), 1);
         }
+
+        uint32_t get_total_image_levels(uint32_t image_index) const override {
+            // All KTX2 faces have the same number of mipmap levels
+            // KTX2 allows a level count of 0 (meaning "only the base level") - ensure at least 1
+            return std::max(pTranscoder->get_levels(), 1);
+        }
     };
 
     Transcoder *transcoder_new(TranscoderType type, MemoryView data) {
@@ -356,8 +367,7 @@ extern "C" {
 
     // Returns the number of mipmap levels in an image.
     uint32_t transcoder_get_total_image_levels(const Transcoder *transcoder, uint32_t image_index) {
-        // FIXME(Paolo) IMPLEMENT!
-        return {};
+        return transcoder->get_total_image_levels(image_index);
     }
 
     // Returns basic information about an image. Note that orig_width/orig_height may not be a multiple of 4.
