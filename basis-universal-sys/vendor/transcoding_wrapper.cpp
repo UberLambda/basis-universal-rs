@@ -189,31 +189,36 @@ extern "C" {
         Transcoder &operator=(Transcoder &&) = delete;
 
         virtual ~Transcoder() {
-            delete pTranscoder; pTranscoder = nullptr;
+            delete pCodebook; pCodebook = nullptr;
         }
+
+        virtual operator bool() const = 0;
 
         virtual TranscoderType type() const = 0;
 
         virtual bool validate_header() const = 0;
         virtual bool validate_file_checksums(bool full_validation) const = 0;
-
-        virtual bool start_transcoding() = 0;
-        virtual bool get_ready_to_transcode() const = 0;
-        virtual bool stop_transcoding() = 0;
     };
 
     // Wraps a .basis format transcoder.
     struct BasisTranscoder final : public Transcoder {
         basist::basisu_transcoder *pTranscoder;
+        bool ok;
 
         BasisTranscoder(MemoryView data)
             : Transcoder(data)
             , pTranscoder{new basist::basisu_transcoder(pCodebook)}
         {
+            ok = pTranscoder->start_transcoding(data.pData, data.size);
         }
 
         ~BasisTranscoder() override {
+            pTranscoder->stop_transcoding();
             delete pTranscoder; pTranscoder = nullptr;
+        }
+
+        operator bool() const override {
+            return ok;
         }
 
         TranscoderType type() const override {
@@ -221,23 +226,15 @@ extern "C" {
         }
 
         bool validate_header() const override {
-            return pTranscoder->validate_data(data.pData, data.size);
+            return pTranscoder->validate_header(data.pData, data.size);
         }
 
         bool validate_file_checksums(bool full_validation) const override {
             return pTranscoder->validate_file_checksums(data.pData, data.size, full_validation);
         }
 
-        bool start_transcoding() override {
-            return pTranscoder->start_transcoding(data.pData, data.size);
-        }
-
-        bool get_ready_to_transcode() override {
+        bool get_ready_to_transcode() const override {
             return pTranscoder->get_ready_to_transcode();
-        }
-
-        bool stop_transcoding() override {
-            return pTranscoder->stop_transcoding();
         }
     };
 
@@ -256,30 +253,24 @@ extern "C" {
             delete pTranscoder; pTranscoder = nullptr;
         }
 
+        operator bool() const override {
+            // KTX2 does not have start_transcoding() / stop_transcoding()
+            // -> always OK
+            return true;
+        }
+
         TranscoderType type() const override {
             return TranscoderType::Ktx2;
         }
     
         bool validate_header() const override {
-            // TODO: Not implemented for KTX2
+            // TODO(Paolo): Not implemented for KTX2
             return true;
         }
 
         bool validate_file_checksums(bool) const override {
-            // TODO: Not implemented for KTX2
+            // TODO(Paolo): Not implemented for KTX2
             return true;
-        }
-
-        bool start_transcoding(const void *, uint32_t) override {
-            return pTranscoder->start_transcoding();
-        }
-
-        bool get_ready_to_transcode() override {
-            return pTranscoder->get_ready_to_transcode();
-        }
-
-        bool stop_transcoding() override {
-            return pTranscoder->stop_transcoding();
         }
     };
 
@@ -360,21 +351,6 @@ extern "C" {
     bool transcoder_get_file_info(Transcoder *transcoder, FileInfo &file_info) {
         // FIXME(Paolo) IMPLEMENT!
         return {};
-    }
-
-    // start_transcoding() must be called before calling transcode_slice() or transcode_image_level().
-    // For ETC1S files, this call decompresses the selector/endpoint codebooks, so ideally you would only call this once per .basis file (not each image/mipmap level).
-    bool transcoder_start_transcoding(Transcoder *transcoder) {
-        return transcoder->start_transcoding();
-    }
-
-    bool transcoder_stop_transcoding(Transcoder *transcoder) {
-        return transcoder->stop_transcoding();
-    }
-
-    // Returns true if start_transcoding() has been called.
-    bool transcoder_get_ready_to_transcode(const Transcoder *transcoder) {
-        return transcoder->get_ready_to_transcode();
     }
 
     // transcode_image_level() decodes a single mipmap level from the .basis file to any of the supported output texture formats.
