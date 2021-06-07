@@ -165,12 +165,20 @@ extern "C" {
         Ktx2,
     };
 
+    // A view over a memory region.
+    struct MemoryView {
+        void *pData;
+        uint32_t size;
+    };
+
     // The base of a Basis transcoder wrapper.
     struct Transcoder {
+        MemoryView data;
         basist::etc1_global_selector_codebook *pCodebook;
 
-        Transcoder()
-            : pCodebook{new basist::etc1_global_selector_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb)}
+        Transcoder(MemoryView data)
+            : data{data}
+            , pCodebook{new basist::etc1_global_selector_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb)}
         {
         }
 
@@ -186,22 +194,20 @@ extern "C" {
 
         virtual TranscoderType type() const = 0;
 
-        virtual bool validate_header(const void *pData, uint32_t data_size) const = 0;
-        virtual bool validate_file_checksums(const void *pData, uint32_t data_size, bool full_validation) const = 0;
+        virtual bool validate_header() const = 0;
+        virtual bool validate_file_checksums(bool full_validation) const = 0;
 
-        virtual bool start_transcoding(const void *pData, uint32_t data_size) = 0;
+        virtual bool start_transcoding() = 0;
         virtual bool get_ready_to_transcode() const = 0;
         virtual bool stop_transcoding() = 0;
-
-        virtual uint32_t get_levels(const void *pData, )
     };
 
     // Wraps a .basis format transcoder.
     struct BasisTranscoder final : public Transcoder {
         basist::basisu_transcoder *pTranscoder;
 
-        BasisTranscoder()
-            : Transcoder()
+        BasisTranscoder(MemoryView data)
+            : Transcoder(data)
             , pTranscoder{new basist::basisu_transcoder(pCodebook)}
         {
         }
@@ -226,7 +232,7 @@ extern "C" {
             return pTranscoder->start_transcoding(pData, data_size);
         }
 
-        bool get_ready_to_transcode(const void *pData, uint32_t data_size) override {
+        bool get_ready_to_transcode() override {
             return pTranscoder->get_ready_to_transcode();
         }
 
@@ -239,9 +245,9 @@ extern "C" {
     struct Ktx2Transcoder final : public Transcoder {
         basist::ktx2_transcoder *pTranscoder;
 
-        Ktx2Transcoder()
-            : Transcoder()
-            , pTranscoder{new basist::ktx2_transcoder(transcoder->pCodebook)}
+        Ktx2Transcoder(MemoryView data)
+            : Transcoder(data)
+            , pTranscoder{new basist::ktx2_transcoder(pCodebook)}
         {
         }
 
@@ -254,12 +260,12 @@ extern "C" {
             return TranscoderType::Ktx2;
         }
     
-        bool validate_header(const void *, uint32_t) const override {
+        bool validate_header() const override {
             // TODO: Not implemented for KTX2
             return true;
         }
 
-        bool validate_file_checksums(const void *, uint32_t, bool) const override {
+        bool validate_file_checksums(bool) const override {
             // TODO: Not implemented for KTX2
             return true;
         }
@@ -294,69 +300,72 @@ extern "C" {
         delete transcoder;
     }
 
-    // Validates the .basis file. This computes a crc16 over the entire file, so it's slow.
-    bool transcoder_validate_file_checksums(const Transcoder *transcoder, const void *pData, uint32_t data_size, bool full_validation) {
-        return transcoder->validate_file_checksums(pData, data_size, full_validation);
+    // Validates the .file.
+    // For .basis: this computes a crc16 over the entire file, so it's slow.
+    bool transcoder_validate_file_checksums(const Transcoder *transcoder, bool full_validation) {
+        return transcoder->validate_file_checksums(full_validation);
     }
 
     // Quick header validation - no crc16 checks.
-    bool transcoder_validate_header(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->validate_header(pData, data_size);
+    bool transcoder_validate_header(const Transcoder *transcoder) {
+        return transcoder->validate_header();
     }
 
-    basist::basis_texture_type transcoder_get_texture_type(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->pTranscoder->get_texture_type(pData, data_size);
+    basist::basis_texture_type transcoder_get_texture_type(const Transcoder *transcoder) {
+        return transcoder->get_texture_type();
     }
 
-    bool transcoder_get_userdata(const Transcoder *transcoder, const void *pData, uint32_t data_size, uint32_t &userdata0, uint32_t &userdata1) {
-        return transcoder->pTranscoder->get_userdata(pData, data_size, userdata0, userdata1);
+    bool transcoder_get_userdata(const Transcoder *transcoder, uint32_t &userdata0, uint32_t &userdata1) {
+        // FIXME(Paolo) IMPLEMENT!
+        return false;
     }
 
     // Returns the total number of images in the basis file (always 1 or more).
     // Note that the number of mipmap levels for each image may differ, and that images may have different resolutions.
     uint32_t transcoder_get_total_images(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->pTranscoder->get_total_images(pData, data_size);
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
-    basist::basis_tex_format transcoder_get_tex_format(const Transcoder *transcoder, const void* pData, uint32_t data_size) {
-        return transcoder->pTranscoder->get_tex_format(pData, data_size);
+    basist::basis_tex_format transcoder_get_tex_format(const Transcoder *transcoder) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // Returns the number of mipmap levels in an image.
-    uint32_t transcoder_get_total_image_levels(const Transcoder *transcoder, const void *pData, uint32_t data_size, uint32_t image_index) {
-        return transcoder->pTranscoder->get_total_image_levels(pData, data_size, image_index);
+    uint32_t transcoder_get_total_image_levels(const Transcoder *transcoder, uint32_t image_index) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // Returns basic information about an image. Note that orig_width/orig_height may not be a multiple of 4.
-    bool transcoder_get_image_level_desc(const Transcoder *transcoder, const void *pData, uint32_t data_size, uint32_t image_index, uint32_t level_index, uint32_t &orig_width, uint32_t &orig_height, uint32_t &total_blocks) {
-        return transcoder->pTranscoder->get_image_level_desc(pData, data_size, image_index, level_index, orig_width, orig_height, total_blocks);
+    bool transcoder_get_image_level_desc(const Transcoder *transcoder, uint32_t image_index, uint32_t level_index, uint32_t &orig_width, uint32_t &orig_height, uint32_t &total_blocks) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // Returns information about the specified image.
-    bool transcoder_get_image_info(const Transcoder *transcoder, const void *pData, uint32_t data_size, basist::basisu_image_info &image_info, uint32_t image_index) {
-        return transcoder->pTranscoder->get_image_info(pData, data_size, image_info, image_index);
+    bool transcoder_get_image_info(const Transcoder *transcoder, basist::basisu_image_info &image_info, uint32_t image_index) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // Returns information about the specified image's mipmap level.
-    bool transcoder_get_image_level_info(const Transcoder *transcoder, const void *pData, uint32_t data_size, basist::basisu_image_level_info &level_info, uint32_t image_index, uint32_t level_index) {
-        return transcoder->pTranscoder->get_image_level_info(pData, data_size, level_info, image_index, level_index);
+    bool transcoder_get_image_level_info(const Transcoder *transcoder, basist::basisu_image_level_info &level_info, uint32_t image_index, uint32_t level_index) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // Get a description of the basis file and low-level information about each slice.
-    bool transcoder_get_file_info(Transcoder *transcoder, const void *pData, uint32_t data_size, FileInfo &file_info) {
-        basist::basisu_file_info fi;
-        if (!transcoder->pTranscoder->get_file_info(pData, data_size, fi)) {
-            return false;
-        }
-
-        file_info.reset(fi);
-        return true;
+    bool transcoder_get_file_info(Transcoder *transcoder, FileInfo &file_info) {
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     // start_transcoding() must be called before calling transcode_slice() or transcode_image_level().
     // For ETC1S files, this call decompresses the selector/endpoint codebooks, so ideally you would only call this once per .basis file (not each image/mipmap level).
-    bool transcoder_start_transcoding(Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->start_transcoding(pData, data_size);
+    bool transcoder_start_transcoding(Transcoder *transcoder) {
+        return transcoder->start_transcoding();
     }
 
     bool transcoder_stop_transcoding(Transcoder *transcoder) {
@@ -381,8 +390,6 @@ extern "C" {
     // a first pass, which will be read in a second pass.
     bool transcoder_transcode_image_level(
             Transcoder *transcoder,
-            const void *pData,
-            uint32_t data_size,
             uint32_t image_index,
             uint32_t level_index,
             void *pOutput_blocks,
@@ -393,19 +400,8 @@ extern "C" {
             basist::basisu_transcoder_state *pState, // default: nullptr
             uint32_t output_rows_in_pixels // default: 0
     ) {
-        return transcoder->pTranscoder->transcode_image_level(
-                pData,
-                data_size,
-                image_index,
-                level_index,
-                pOutput_blocks,
-                output_blocks_buf_size_in_blocks_or_pixels,
-                fmt,
-                decode_flags,
-                output_row_pitch_in_blocks_or_pixels,
-                pState,
-                output_rows_in_pixels
-        );
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     //
