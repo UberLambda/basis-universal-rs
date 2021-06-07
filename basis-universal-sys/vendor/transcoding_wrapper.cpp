@@ -218,7 +218,7 @@ extern "C" {
         }
 
         operator bool() const override {
-            return ok;
+            return ok && pTranscoder->get_ready_to_transcode();
         }
 
         TranscoderType type() const override {
@@ -231,10 +231,6 @@ extern "C" {
 
         bool validate_file_checksums(bool full_validation) const override {
             return pTranscoder->validate_file_checksums(data.pData, data.size, full_validation);
-        }
-
-        bool get_ready_to_transcode() const override {
-            return pTranscoder->get_ready_to_transcode();
         }
     };
 
@@ -303,7 +299,8 @@ extern "C" {
     }
 
     basist::basis_texture_type transcoder_get_texture_type(const Transcoder *transcoder) {
-        return transcoder->get_texture_type();
+        // FIXME(Paolo) IMPLEMENT!
+        return {};
     }
 
     bool transcoder_get_userdata(const Transcoder *transcoder, uint32_t &userdata0, uint32_t &userdata1) {

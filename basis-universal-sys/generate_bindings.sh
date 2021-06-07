@@ -30,13 +30,11 @@ bindgen vendor/transcoding_wrapper.cpp -o src/transcoding_bindings.rs \
   --whitelist-function transcoder_get_image_level_info \
   --whitelist-function transcoder_get_file_info \
   \
-  --whitelist-function transcoder_start_transcoding \
-  --whitelist-function transcoder_stop_transcoding \
-  --whitelist-function transcoder_get_ready_to_transcode \
   --whitelist-function transcoder_transcode_image_level \
   \
   --whitelist-function basisu_transcoder_init \
   \
+  --rustified-enum TranscoderType \
   --opaque-type Transcoder \
   --opaque-type basist::basisu_transcoder_state \
   \
