@@ -1000,11 +1000,7 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    pub fn transcoder_get_total_images(
-        transcoder: *const Transcoder,
-        pData: *const ::std::os::raw::c_void,
-        data_size: u32,
-    ) -> u32;
+    pub fn transcoder_get_total_images(transcoder: *const Transcoder) -> u32;
 }
 extern "C" {
     pub fn transcoder_get_tex_format(transcoder: *const Transcoder) -> basist_basis_tex_format;

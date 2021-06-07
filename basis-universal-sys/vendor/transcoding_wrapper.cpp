@@ -310,7 +310,7 @@ extern "C" {
 
     // Returns the total number of images in the basis file (always 1 or more).
     // Note that the number of mipmap levels for each image may differ, and that images may have different resolutions.
-    uint32_t transcoder_get_total_images(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
+    uint32_t transcoder_get_total_images(const Transcoder *transcoder) {
         // FIXME(Paolo) IMPLEMENT!
         return {};
     }
