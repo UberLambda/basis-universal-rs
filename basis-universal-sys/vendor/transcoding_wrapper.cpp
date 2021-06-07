@@ -220,16 +220,16 @@ extern "C" {
             return TranscoderType::Basis;
         }
 
-        bool validate_header(const void *pData, uint32_t data_size) const override {
-            return pTranscoder->validate_data(pData, data_size);
+        bool validate_header() const override {
+            return pTranscoder->validate_data(data.pData, data.size);
         }
 
-        bool validate_file_checksums(const void *pData, uint32_t data_size, bool full_validation) const override {
-            return pTranscoder->validate_file_checksums(pData, data_size, full_validation);
+        bool validate_file_checksums(bool full_validation) const override {
+            return pTranscoder->validate_file_checksums(data.pData, data.size, full_validation);
         }
 
-        bool start_transcoding(const void *pData, uint32_t data_size) override {
-            return pTranscoder->start_transcoding(pData, data_size);
+        bool start_transcoding() override {
+            return pTranscoder->start_transcoding(data.pData, data.size);
         }
 
         bool get_ready_to_transcode() override {
@@ -283,13 +283,13 @@ extern "C" {
         }
     };
 
-    Transcoder *transcoder_new(TranscoderType type) {
+    Transcoder *transcoder_new(TranscoderType type, MemoryView data) {
         switch(type) {
             case TranscoderType::Basis:
-                return new BasisTranscoder();
+                return new BasisTranscoder(data);
 
             case TranscoderType::Ktx2:
-                return new Ktx2Transcoder();
+                return new Ktx2Transcoder(data);
             
             default:
                 return nullptr;
