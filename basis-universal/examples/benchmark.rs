@@ -1,6 +1,6 @@
 use basis_universal::{
     BasisTextureFormat, Compressor, CompressorParams, TranscodeParameters, Transcoder,
-    TranscoderTextureFormat,
+    TranscoderTextureFormat, TranscoderType,
 };
 use image::{DynamicImage, GenericImageView};
 use std::io::Write;
@@ -254,8 +254,6 @@ fn benchmark_transcode(
         compressor.basis_file_size() / 1024
     );
 
-    let mut transcoder = Transcoder::new();
-
     let transcode_formats = vec![
         TranscoderTextureFormat::ETC1_RGB,
         TranscoderTextureFormat::BC1_RGB,
@@ -265,17 +263,14 @@ fn benchmark_transcode(
     ];
 
     for transcode_format in transcode_formats {
+        let t0 = std::time::Instant::now();
+        let transcoder = Transcoder::new(TranscoderType::Basis, compressor.basis_file());
+
         //
         // Now lets transcode it back to raw images
         //
-        let t0 = std::time::Instant::now();
-        transcoder
-            .prepare_transcoding(compressor.basis_file())
-            .unwrap();
-
         let result = transcoder
             .transcode_image_level(
-                compressor.basis_file(),
                 transcode_format,
                 TranscodeParameters {
                     image_index: 0,

@@ -1,6 +1,6 @@
 use basis_universal::{
     BasisTextureFormat, Compressor, CompressorParams, TranscodeParameters, Transcoder,
-    TranscoderTextureFormat, UserData,
+    TranscoderTextureFormat, TranscoderType, UserData,
 };
 use image::GenericImageView;
 
@@ -91,8 +91,8 @@ pub fn main() {
     let basis_file = compressor.basis_file();
     // std::fs::write("example_encoded_image.basis", basis_file).unwrap();
 
-    let mut transcoder = Transcoder::new();
-    let mip_level_count = transcoder.image_level_count(basis_file, 0);
+    let transcoder = Transcoder::new(TranscoderType::Basis, basis_file);
+    let mip_level_count = transcoder.image_level_count(0);
     println!(
         "Compressed {} mip levels to {} total bytes in {} ms",
         mip_level_count,
@@ -100,18 +100,15 @@ pub fn main() {
         compression_time.as_secs_f64() * 1000.0
     );
 
-    let userdata = transcoder.user_data(basis_file).unwrap();
+    let userdata = transcoder.user_data().unwrap();
     println!("Basis file has user data {:?}", userdata);
 
     //
     // Now lets transcode it back to raw images
     //
-    transcoder.prepare_transcoding(basis_file).unwrap();
-
     let t0 = std::time::Instant::now();
     let result = transcoder
         .transcode_image_level(
-            basis_file,
             TranscoderTextureFormat::ASTC_4x4_RGBA,
             TranscodeParameters {
                 image_index: 0,
@@ -131,7 +128,6 @@ pub fn main() {
     let t0 = std::time::Instant::now();
     let result = transcoder
         .transcode_image_level(
-            basis_file,
             TranscoderTextureFormat::RGBA32,
             TranscodeParameters {
                 image_index: 0,
@@ -148,11 +144,7 @@ pub fn main() {
         (t1 - t0).as_secs_f64() * 1000.0
     );
 
-    transcoder.end_transcoding();
-
-    let description = transcoder
-        .image_level_description(basis_file, 0, 0)
-        .unwrap();
+    let description = transcoder.image_level_description(0, 0).unwrap();
     let _image = image::RgbaImage::from_raw(
         description.original_width,
         description.original_height,
