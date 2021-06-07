@@ -18,6 +18,7 @@ fn main() {
     // Compile this separately as c code
     build_with_common_settings()
         .file("vendor/basis_universal/encoder/apg_bmp.c")
+        .file("vendor/basis_universal/zstd/zstd.c")
         .compile("basisuniversalc");
 
     build_with_common_settings()
