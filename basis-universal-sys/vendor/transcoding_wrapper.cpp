@@ -198,6 +198,8 @@ extern "C" {
 
         virtual bool validate_header() const = 0;
         virtual bool validate_file_checksums(bool full_validation) const = 0;
+
+        virtual basist::basis_texture_type get_texture_type() const = 0;
     };
 
     // Wraps a .basis format transcoder.
@@ -223,6 +225,10 @@ extern "C" {
 
         TranscoderType type() const override {
             return TranscoderType::Basis;
+        }
+
+        basist::basis_texture_type get_texture_type() const override {
+            return pTranscoder->get_texture_type(data.pData, data.size);
         }
 
         bool validate_header() const override {
@@ -268,6 +274,13 @@ extern "C" {
             // TODO(Paolo): Not implemented for KTX2
             return true;
         }
+
+        basist::basis_texture_type get_texture_type() const override {
+            // FIXME(Paolo): IMPLEMENT!
+            // This would have to look at the number of layers + other params to infer the texture type
+            // (2D, 2D Array, Cubemap [array] or Volume)
+            return {};
+        }
     };
 
     Transcoder *transcoder_new(TranscoderType type, MemoryView data) {
@@ -299,8 +312,7 @@ extern "C" {
     }
 
     basist::basis_texture_type transcoder_get_texture_type(const Transcoder *transcoder) {
-        // FIXME(Paolo) IMPLEMENT!
-        return {};
+        return transcoder->get_texture_type();
     }
 
     bool transcoder_get_userdata(const Transcoder *transcoder, uint32_t &userdata0, uint32_t &userdata1) {
