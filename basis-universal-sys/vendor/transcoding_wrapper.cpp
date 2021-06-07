@@ -174,11 +174,26 @@ extern "C" {
         {
         }
 
+        Transcoder(const Transcoder &) = delete;
+        Transcoder &operator=(const Transcoder &) = delete;
+
+        Transcoder(Transcoder &&) = delete;
+        Transcoder &operator=(Transcoder &&) = delete;
+
         virtual ~Transcoder() {
             delete pTranscoder; pTranscoder = nullptr;
         }
 
         virtual TranscoderType type() const = 0;
+
+        virtual bool validate_header(const void *pData, uint32_t data_size) const = 0;
+        virtual bool validate_file_checksums(const void *pData, uint32_t data_size, bool full_validation) const = 0;
+
+        virtual bool start_transcoding(const void *pData, uint32_t data_size) = 0;
+        virtual bool get_ready_to_transcode() const = 0;
+        virtual bool stop_transcoding() = 0;
+
+        virtual uint32_t get_levels(const void *pData, )
     };
 
     // Wraps a .basis format transcoder.
@@ -195,8 +210,28 @@ extern "C" {
             delete pTranscoder; pTranscoder = nullptr;
         }
 
-        TranscoderType type() override {
+        TranscoderType type() const override {
             return TranscoderType::Basis;
+        }
+
+        bool validate_header(const void *pData, uint32_t data_size) const override {
+            return pTranscoder->validate_data(pData, data_size);
+        }
+
+        bool validate_file_checksums(const void *pData, uint32_t data_size, bool full_validation) const override {
+            return pTranscoder->validate_file_checksums(pData, data_size, full_validation);
+        }
+
+        bool start_transcoding(const void *pData, uint32_t data_size) override {
+            return pTranscoder->start_transcoding(pData, data_size);
+        }
+
+        bool get_ready_to_transcode(const void *pData, uint32_t data_size) override {
+            return pTranscoder->get_ready_to_transcode();
+        }
+
+        bool stop_transcoding() override {
+            return pTranscoder->stop_transcoding();
         }
     };
 
@@ -208,15 +243,37 @@ extern "C" {
             : Transcoder()
             , pTranscoder{new basist::ktx2_transcoder(transcoder->pCodebook)}
         {
-
         }
 
         ~Ktx2Transcoder() override { 
+            pTranscoder->clear();
             delete pTranscoder; pTranscoder = nullptr;
         }
 
-        TranscoderType type() override {
+        TranscoderType type() const override {
             return TranscoderType::Ktx2;
+        }
+    
+        bool validate_header(const void *, uint32_t) const override {
+            // TODO: Not implemented for KTX2
+            return true;
+        }
+
+        bool validate_file_checksums(const void *, uint32_t, bool) const override {
+            // TODO: Not implemented for KTX2
+            return true;
+        }
+
+        bool start_transcoding(const void *, uint32_t) override {
+            return pTranscoder->start_transcoding();
+        }
+
+        bool get_ready_to_transcode() override {
+            return pTranscoder->get_ready_to_transcode();
+        }
+
+        bool stop_transcoding() override {
+            return pTranscoder->stop_transcoding();
         }
     };
 
@@ -239,12 +296,12 @@ extern "C" {
 
     // Validates the .basis file. This computes a crc16 over the entire file, so it's slow.
     bool transcoder_validate_file_checksums(const Transcoder *transcoder, const void *pData, uint32_t data_size, bool full_validation) {
-        return transcoder->pTranscoder->validate_file_checksums(pData, data_size, full_validation);
+        return transcoder->validate_file_checksums(pData, data_size, full_validation);
     }
 
     // Quick header validation - no crc16 checks.
     bool transcoder_validate_header(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->pTranscoder->validate_header(pData, data_size);
+        return transcoder->validate_header(pData, data_size);
     }
 
     basist::basis_texture_type transcoder_get_texture_type(const Transcoder *transcoder, const void *pData, uint32_t data_size) {
@@ -299,16 +356,16 @@ extern "C" {
     // start_transcoding() must be called before calling transcode_slice() or transcode_image_level().
     // For ETC1S files, this call decompresses the selector/endpoint codebooks, so ideally you would only call this once per .basis file (not each image/mipmap level).
     bool transcoder_start_transcoding(Transcoder *transcoder, const void *pData, uint32_t data_size) {
-        return transcoder->pTranscoder->start_transcoding(pData, data_size);
+        return transcoder->start_transcoding(pData, data_size);
     }
 
     bool transcoder_stop_transcoding(Transcoder *transcoder) {
-        return transcoder->pTranscoder->stop_transcoding();
+        return transcoder->stop_transcoding();
     }
 
     // Returns true if start_transcoding() has been called.
     bool transcoder_get_ready_to_transcode(const Transcoder *transcoder) {
-        return transcoder->pTranscoder->get_ready_to_transcode();
+        return transcoder->get_ready_to_transcode();
     }
 
     // transcode_image_level() decodes a single mipmap level from the .basis file to any of the supported output texture formats.
