@@ -916,7 +916,7 @@ pub enum TranscoderType {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct MemoryView {
-    pub pData: *mut ::std::os::raw::c_void,
+    pub pData: *const ::std::os::raw::c_void,
     pub size: u32,
 }
 #[test]

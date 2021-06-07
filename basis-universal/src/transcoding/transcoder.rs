@@ -54,10 +54,10 @@ impl<'a> Transcoder<'a> {
     /// Create a transcoder for the given file.
     pub fn new(
         ttype: TranscoderType,
-        data: &'a mut [u8],
+        data: &'a [u8],
     ) -> Transcoder {
         let data_view = sys::MemoryView {
-            pData: data.as_mut_ptr() as *mut std::ffi::c_void,
+            pData: data.as_ptr() as *const std::ffi::c_void,
             size: data.len() as u32,
         };
         Transcoder {

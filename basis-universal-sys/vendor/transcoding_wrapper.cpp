@@ -165,9 +165,9 @@ extern "C" {
         Ktx2,
     };
 
-    // A view over a memory region.
+    // A read-only view over a memory region.
     struct MemoryView {
-        void *pData;
+        const void *pData;
         uint32_t size;
     };
 
